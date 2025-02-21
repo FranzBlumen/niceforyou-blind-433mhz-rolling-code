@@ -1,0 +1,43 @@
+import time
+import random
+from machine import Pin
+
+# Configurar el pin GPIO para transmitir la señal
+GPIO_PIN = 17  # Pin GPIO donde se conecta el transmisor
+transmitter = Pin(GPIO_PIN, Pin.OUT)
+
+def generate_code(previous_code):
+    """ Genera el siguiente código rolling basado en una simple transformación """
+    return previous_code ^ random.randint(1, 255)  # Simulación del cambio del rolling code
+
+def generate_command(base_code, command):
+    """ Genera un código para una función específica """
+    command_map = {
+        "UP": 0b0001,
+        "DOWN": 0b0010,
+        "STOP": 0b0011,
+        "PAIR": 0b0100
+    }
+    return (base_code << 4) | command_map[command]
+
+def send_pulse(code):
+    """ Envía el código por el GPIO con un simple método de modulación """
+    for i in range(8):  # Enviar 8 bits del código
+        bit = (code >> (7-i)) & 1
+        if bit:
+            transmitter.value(1)
+        else:
+            transmitter.value(0)
+        time.sleep(0.001)  # Ajustar el tiempo de la señal según sea necesario
+
+# Inicializar código base
+base_code = int("1011010111", 2)
+commands = ["UP", "DOWN", "STOP", "PAIR"]
+
+# Generar y enviar códigos para cada comando
+for cmd in commands:
+    new_code = generate_code(base_code)
+    final_code = generate_command(new_code, cmd)
+    print(f"Command: {cmd} | Code: {bin(final_code)}")
+    send_pulse(final_code)  # Enviar el código por el GPIO
+    base_code = new_code  # Actualizar código base para la siguiente iteración
